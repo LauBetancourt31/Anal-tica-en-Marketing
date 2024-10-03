@@ -1,6 +1,6 @@
+ALTER TABLE movies
 SELECT * FROM movies;
 -- Añadir una nueva columna para el título limpio
-ALTER TABLE movies
 ADD COLUMN clean_title VARCHAR(255);
 
 -- Añadir una nueva columna para el año
