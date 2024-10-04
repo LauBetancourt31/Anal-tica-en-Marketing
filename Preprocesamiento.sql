@@ -1,6 +1,6 @@
+ALTER TABLE movies
 SELECT * FROM movies;
 -- Añadir una nueva columna para el título limpio
-ALTER TABLE movies
 ADD COLUMN clean_title VARCHAR(255);
 
 -- Añadir una nueva columna para el año
@@ -21,14 +21,14 @@ SELECT * FROM movies;
 
 SELECT * FROM ratings;
 
--- Crear tabla con usuarios que han calificado más de 20 y menos de 1000 películas
+-- Crear tabla con usuarios que han calificado más de 50 y menos de 500 películas
 DROP TABLE IF EXISTS usuarios_sel;
 
 CREATE TABLE usuarios_sel AS
 SELECT userId AS user_id, COUNT(*) AS cnt_rat
 FROM ratings
 GROUP BY userId
-HAVING cnt_rat <= 1000
+HAVING cnt_rat >50 AND cnt_rat <= 500
 ORDER BY cnt_rat DESC;
 
 -- Crear tabla con películas calificadas por más de 5 usuarios
@@ -38,7 +38,7 @@ CREATE TABLE movies_sel AS
 SELECT movieId, COUNT(*) AS cnt_rat
 FROM ratings
 GROUP BY movieId
-HAVING cnt_rat > 5
+HAVING cnt_rat > 50
 ORDER BY cnt_rat DESC;
 
 -- Crear tablas filtradas de ratings, usuarios y películas
