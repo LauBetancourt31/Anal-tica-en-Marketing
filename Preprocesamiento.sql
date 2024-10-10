@@ -1,65 +1,83 @@
 --- Procesamiento ---
+SELECT * FROM movies;
+-- Añadir una nueva columna para el título limpio
+ALTER TABLE movies
+ADD COLUMN clean_title VARCHAR(255);
 
---- Crear tabla con usuarios que han calificado más de 50 películas y menos de 1000 ---
-drop table if exists usuarios_sel;
+-- Añadir una nueva columna para el año
+ALTER TABLE movies
+ADD COLUMN year INT;
 
-create table usuarios_sel as
-select "userId" as user_id, count(*) as cnt_rat
-from ratings
-group by "userId"
-having cnt_rat > 50 and cnt_rat <= 1000
-order by cnt_rat desc;
+-- Actualizar la tabla para llenar las nuevas columnas con los datos limpios
+UPDATE movies
+SET year = CAST(SUBSTR(title, LENGTH(title) - 4, 4) AS INT), -- Extraer el año
+    clean_title = TRIM(SUBSTR(title, 1, INSTR(title, '(') - 1)) -- Extraer el título limpio
+WHERE INSTR(title, '(') > 0 AND INSTR(title, ')') > 0;
 
---- Crear tabla con películas que han sido vistas por más de 50 usuarios ---
-drop table if exists movies_sel;
+-- Visualizar el resultado
 
-create table movies_sel as
-select "movieId", count(*) as cnt_rat
-from ratings
-group by "movieId"
-having cnt_rat > 50
-order by cnt_rat desc;
+SELECT * FROM movies;
 
---- Crear tablas filtradas de películas, usuarios y calificaciones ---
+--- ver tabla ratings
 
---- Tabla de calificaciones filtrada (ratings_final) ---
+SELECT * FROM ratings;
+
+-- Crear tabla con usuarios que han calificado más de 20 y menos de 1000 películas
+DROP TABLE IF EXISTS usuarios_sel;
+
+CREATE TABLE usuarios_sel AS
+SELECT userId AS user_id, COUNT(*) AS cnt_rat
+FROM ratings
+GROUP BY userId
+HAVING cnt_rat <= 1000
+ORDER BY cnt_rat DESC;
+
+-- Crear tabla con películas calificadas por más de 5 usuarios
+DROP TABLE IF EXISTS movies_sel;
+
+CREATE TABLE movies_sel AS
+SELECT movieId, COUNT(*) AS cnt_rat
+FROM ratings
+GROUP BY movieId
+HAVING cnt_rat > 5
+ORDER BY cnt_rat DESC;
+
+-- Crear tablas filtradas de ratings, usuarios y películas
 DROP TABLE IF EXISTS ratings_final;
 
 CREATE TABLE ratings_final AS
 SELECT a.userId AS user_id,
-       a."movieId" AS movie_id,
+       a.movieId AS movie_id,
        a.rating AS rating
 FROM ratings a
-INNER JOIN movies_sel b ON a."movieId" = b."movieId"
+INNER JOIN movies_sel b ON a.movieId = b.movieId
 INNER JOIN usuarios_sel c ON a.userId = c.user_id;
 
+-- Crear tabla completa
+DROP TABLE IF EXISTS full_ratings;
 
---- Tabla de películas final (movies_final) ---
-drop table if exists movies_final;
+CREATE TABLE full_ratings AS
+SELECT a.*,
+       c.title AS movie_title,
+       c.genres AS movie_genres,
+       c.title AS movie_clean_title,
+       c.year AS movie_year
+FROM ratings_final a
+INNER JOIN movies c ON a.movie_id = c.movieId;
 
-create table movies_final as
-select a."movieId" as movie_id,
-       a.title as movie_title,
-       a.genres as movie_genres
-from movies a
-inner join movies_sel b on a."movieId" = b."movieId";
+SELECT * FROM full_ratings;
 
---- Crear tabla completa (full_ratings) ---
-drop table if exists full_ratings;
+-- Agregar columna con formato de fecha a la tabla full_ratings
+ALTER TABLE full_ratings
+ADD COLUMN fecha_nueva TEXT;
 
-create table full_ratings as
-select a.*,
-       c.movie_title,
-       c.movie_genres
-from ratings_final a
-inner join movies_final c on a.movie_id = c.movie_id;
-
---- Consulta final: obtener las 10 películas con mejor promedio de calificaciones vistas por al menos 50 usuarios ---
----select c.movie_title,
---       avg(a.movie_rating) as avg_rating,
----       count(*) as num_ratings
---from full_ratings a
----group by c.movie_title
---having num_ratings >= 50
----order by avg_rating desc
----limit 10;
+-- Actualizar la nueva columna con el formato de fecha
+UPDATE full_ratings
+SET fecha_nueva = (
+    SELECT STRFTIME('%Y-%m-%d', timestamp, 'unixepoch')
+    FROM ratings
+    WHERE userId = full_ratings.user_id AND movieId = full_ratings.movie_id
+    LIMIT 1
+);
+-- Mostrar resultados
+SELECT * FROM full_ratings;
