@@ -34,7 +34,6 @@ FROM ratings a
 INNER JOIN movies_sel b ON a."movieId" = b."movieId"
 INNER JOIN usuarios_sel c ON a.userId = c.user_id;
 
-
 --- Tabla de películas final (movies_final) ---
 drop table if exists movies_final;
 
@@ -54,3 +53,14 @@ select a.*,
        c.movie_genres as movie_genres
 from ratings_final a
 inner join movies_final c on a.movie_id = c.movie_id;
+
+---- Crear tabla con fecha nueva ----
+drop table if exists f_ratings;
+
+CREATE TABLE f_ratings AS
+SELECT *,
+        STRFTIME('%Y-%m-%d', timestamp, 'unixepoch') AS fecha_nueva,
+        CAST(SUBSTR(movie_title, LENGTH(movie_title) - 4, 4) AS INTEGER) AS movie_year,  -- Extraer el año desde los últimos 4 caracteres antes de ')'
+        TRIM(SUBSTR(movie_title, 1, LENGTH(movie_title) - 6)) AS clean_title 
+FROM full_ratings
+WHERE INSTR(movie_title, '(') > 0 AND INSTR(movie_title, ')') > 0;
