@@ -20,6 +20,18 @@ group by movieId
 having cnt_rat > 30
 order by cnt_rat desc;
 
+-----modificación de movies ----
+DROP TABLE IF EXISTS movies_m;
+
+CREATE TABLE movies_m AS
+SELECT movieId AS movie_id,
+       title AS movie_title,
+       genres AS movie_genres,
+       CAST(SUBSTR(title, INSTR(title, '(') + 1, 4) AS INTEGER) AS movie_year,  -- Extraer el año desde los paréntesis
+       TRIM(SUBSTR(title, 1, INSTR(title, '(') - 1)) AS clean_title  -- Limpiar el título
+FROM movies
+WHERE INSTR(title, '(') > 0 AND INSTR(title, ')') > 0;
+
 --- Crear tablas filtradas de películas, usuarios y calificaciones ---
 
 --- Tabla de calificaciones filtrada (ratings_final) ---
@@ -34,33 +46,22 @@ FROM ratings a
 INNER JOIN movies_sel b ON a."movieId" = b."movieId"
 INNER JOIN usuarios_sel c ON a.userId = c.user_id;
 
---- Tabla de películas final (movies_final) ---
-drop table if exists movies_final;
-
-create table movies_final as
-select a.movieId as movie_id,
-       a.title as movie_title,
-       a.genres as movie_genres
-from movies a
-inner join movies_sel b on a."movieId" = b."movieId";
-
 --- Crear tabla completa (full_ratings) ---
-drop table if exists full_ratings;
+DROP TABLE IF EXISTS full_ratings;
 
-create table full_ratings as
-select a.*,
-       c.movie_title as movie_title,
-       c.movie_genres as movie_genres
-from ratings_final a
-inner join movies_final c on a.movie_id = c.movie_id;
+CREATE TABLE full_ratings AS
+SELECT a.*,
+       c.movie_title AS movie_title,
+       c.movie_genres AS movie_genres,
+       c.clean_title AS clean_title,
+       c.movie_year AS movie_year
+FROM ratings_final a
+INNER JOIN movies_m c ON a.movie_id = c.movie_id;
 
 ---- Crear tabla con fecha nueva ----
-drop table if exists f_ratings;
+DROP TABLE IF EXISTS f_ratings;
 
 CREATE TABLE f_ratings AS
 SELECT *,
-        STRFTIME('%Y-%m-%d', timestamp, 'unixepoch') AS fecha_nueva,
-        CAST(SUBSTR(movie_title, LENGTH(movie_title) - 4, 4) AS INTEGER) AS movie_year,  -- Extraer el año desde los últimos 4 caracteres antes de ')'
-        TRIM(SUBSTR(movie_title, 1, LENGTH(movie_title) - 6)) AS clean_title 
-FROM full_ratings
-WHERE INSTR(movie_title, '(') > 0 AND INSTR(movie_title, ')') > 0;
+       STRFTIME('%Y-%m-%d', timestamp, 'unixepoch') AS fecha_nueva
+FROM full_ratings;
